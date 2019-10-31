@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+    <head>
+        <title>Tienda</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    </head>
+    <body>
+        <p:dataTable var="producto" value="#{index.productos}">
+            <p:column headerText="Id">
+                <h:outputText value="#{producto.id}" />
+            </p:column>
+
+            <p:column headerText="Nombre">
+                <h:outputText value="#{producto.nombre}" />
+            </p:column>
+
+            <p:column headerText="Descripción">
+                <h:outputText value="#{producto.descripcion}" />
+            </p:column>
+        </p:dataTable>
+    </body>
+</html>

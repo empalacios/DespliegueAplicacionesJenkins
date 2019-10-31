@@ -1,0 +1,29 @@
+pipeline {
+  agent any
+
+  stages {
+    stage('build') {
+      steps {
+        sh '/opt/apache-maven-3.6.2/bin/mvn -f ProductosApp clean package'
+      }
+    }
+
+    stage('deploy') {
+      steps {
+        sh 'ssh jenkins@172.17.0.3 rm -f ProductosApp.war'
+        sh 'scp ProductosApp/target/ProductosApp-1.0-SNAPSHOT.war jenkins@172.17.0.3:/home/jenkins/ProductosApp.war'
+        sh 'ssh jenkins@172.17.0.3 sh /opt/payara5/glassfish/bin/asadmin --user=admin --passwordfile=/home/jenkins/payara-password-file deploy --force ProductosApp.war'
+      }
+    }
+  }
+
+  post {
+    success {
+      sh 'echo El proceso de despliegue termino exitosamente'
+    }
+
+    failure {
+      sh 'echo Hubo un error al momento de desplegar la aplicacion'
+    }
+  }
+}
