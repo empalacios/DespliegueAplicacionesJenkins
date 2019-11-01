@@ -1,13 +1,31 @@
 # Despliegue Automático de Aplicaciones
 ## Creación de Imágenes Docker
-Se deben crear las imágenes Docker para poner en marcha los contenedores necesarios, para ello, debemos posicionarnos en el directorio raíz del repositorio y ejecutar los siguientes pasos:
+Se deben crear las imágenes Docker para poner en marcha los contenedores necesarios, para ello, debemos posicionarnos en el directorio raíz del repositorio y ejecutar los siguientes comandos:
 ```
-cd infraestructura
-docker build -t db postgres/
-docker build -t payara payara/
-docker build -t git git/
-docker build -t jenkins jenkins/
+docker build -t db infraestructura/postgres/
+docker build -t app infraestructura/payara/
+docker build -t git infraestructura/git/
+docker build -t jenkins infraestructura/jenkins/
 ```
+
+## Configuración del anfitrión del servidor de aplicaciones
+En el anfitrión que se utilizará para los contenedores del servidor de aplicaciones (Payara), debe configurarse de la siguiente manera:
+- Crear el usuario jenkins
+- Crear el directorio de aplicaciones a desplegar en el servidor de aplicaciones (`/payara-apps`)
+- Habilitar el servicio ssh
+
+La configuración descrita puede realizarse ejecutando el siguiente script en el anfitrión (con los permisos necesarios):
+```
+useradd -d/home/jenkins jenkins \
+  && adduser jenkins docker \
+  && mkdir /home/jenkins \
+  && chown jenkins:jenkins /home/jenkins \
+  && mkdir /payara-apps
+  && chown jenkins:jenkins /payara-apps \
+  && echo jenkins:jenkins | chpasswd
+apt-get install -y openssh-server
+```
+
 ## Puesta en marcha
 ### Creación de contenedores
 #### Base de datos (PostgreSQL)
@@ -17,16 +35,20 @@ En caso de ya tener creado el contenedor, se puede volver a iniciar mediante el 
 `docker start db`
 Al iniciar el contenedor, este habilitará el servicio postgres para utilizar la base de datos.
 
-#### Servidor de Aplicaciones
+#### Servidor de Aplicaciones (Payara)
 Iniciar un nuevo contenedor
-`docker run -it --name=payara payara /bin/bash`
+```
+docker run -p 4848:4848 -d --name=app -v /payara-apps:/opt/payara/deployments app
+```
+Las credenciales para acceder a la consola de administración son:
+- nombre de usuario: admin
+- contraseña: admin
+
 En caso de ya tener creado el contenedor, se puede volver a iniciar mediante el comando:
-`docker start -i payara`
-Cada vez que se inicia el contenedor, debe ejecutarse el servidor Payara y ssh (para realizar los despliegues), mediante los siguientes comandos:
 ```
-service ssh start
-./opt/payara5/glassfish/bin/asadmin start-domain
+docker start app
 ```
+En cada despliegue, este servidor será regenerado por el servidor de integración contínua y desplegará las aplicaciones que se encuentren en el directorio `/payara-apps`
 
 #### Control de versiones
 Debe ejecutarse el siguiente comando
@@ -36,14 +58,16 @@ En caso de ya tener creado el contenedor, se puede volver a iniciar mediante el 
 Cada vez que se inicia el contenedor debe ejecutarse el servicio ssh para enviar los cambios realizados, mediante el comando:
 `service ssh start`
 
-#### Servidor de Integración Continua
+#### Servidor de Integración Continua (Jenkins)
 Debe ejecutarse el siguiente comando
-`docker run -it --name=jenkins jenkins /bin/bash`
+```
+docker run -it --name=jenkins jenkins /bin/bash
+```
 Una vez creado el contenedor, debemos generar las claves ssh y enviarlas al servidor de aplicaciones y de control de versiones mediante los siguientes comandos:
 ```
 su - jenkins
 ssh-keygen # al momento de crear el archivo aceptar los valores por defecto pulsando <ENTER>
-ssh-copy-id jenkins@172.17.0.3 # payara, la constraseña se encuentra en el Dockerfile de payara
+ssh-copy-id jenkins@172.17.0.1 # docker host para contenedores payara, la constraseña se encuentra en el Dockerfile de payara
 ssh-copy-id jenkins@172.17.0.4 # git, la contraseña se encuentra en el Dockerfile de git
 ```
 
@@ -100,4 +124,3 @@ Con el objetivo de automatizar el despliegue de aplicaciones, debemos notificar 
 	* Dar click en el botón Add new token
 	* Copiar el valor generado y modificarlo en el archivo post-receive que se encuentra en la carpeta proyecto en la línea de la petición para realizar el despliegue en relación al parámetro usuario.
 * Copiar el archivo post-receive que se encuentra en la carpeta proyecto a la dirección de hooks del repositorio (/home/git/app/hooks) en el contenedor de git
-

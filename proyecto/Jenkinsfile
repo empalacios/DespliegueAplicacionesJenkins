@@ -10,9 +10,11 @@ pipeline {
 
     stage('deploy') {
       steps {
-        sh 'ssh jenkins@172.17.0.3 rm -f ProductosApp.war'
-        sh 'scp ProductosApp/target/ProductosApp-1.0-SNAPSHOT.war jenkins@172.17.0.3:/home/jenkins/ProductosApp.war'
-        sh 'ssh jenkins@172.17.0.3 sh /opt/payara5/glassfish/bin/asadmin --user=admin --passwordfile=/home/jenkins/payara-password-file deploy --force ProductosApp.war'
+        sh 'ssh jenkins@172.17.0.1 docker stop app || echo No existe un contenedor para el servidor de aplicaciones'
+        sh 'ssh jenkins@172.17.0.1 docker rm app || true'
+        sh 'ssh jenkins@172.17.0.1 rm -f /payara-apps/ProductosApp.war'
+        sh 'scp ProductosApp/target/ProductosApp-1.0-SNAPSHOT.war jenkins@172.17.0.1:/payara-apps/ProductosApp.war'
+        sh 'ssh jenkins@172.17.0.1 docker run -p 4848:4848 -d --name=app -v /payara-apps:/opt/payara/deployments app'
       }
     }
   }
