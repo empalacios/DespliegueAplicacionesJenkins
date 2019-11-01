@@ -8,24 +8,6 @@ docker build -t git infraestructura/git/
 docker build -t jenkins infraestructura/jenkins/
 ```
 
-## Configuración del anfitrión del servidor de aplicaciones
-En el anfitrión que se utilizará para los contenedores del servidor de aplicaciones (Payara), debe configurarse de la siguiente manera:
-- Crear el usuario jenkins
-- Crear el directorio de aplicaciones a desplegar en el servidor de aplicaciones (`/payara-apps`)
-- Habilitar el servicio ssh
-
-La configuración descrita puede realizarse ejecutando el siguiente script en el anfitrión (con los permisos necesarios):
-```
-useradd -d/home/jenkins jenkins \
-  && adduser jenkins docker \
-  && mkdir /home/jenkins \
-  && chown jenkins:jenkins /home/jenkins \
-  && mkdir /payara-apps
-  && chown jenkins:jenkins /payara-apps \
-  && echo jenkins:jenkins | chpasswd
-apt-get install -y openssh-server
-```
-
 ## Puesta en marcha
 ### Creación de contenedores
 #### Base de datos (PostgreSQL)
@@ -38,17 +20,17 @@ Al iniciar el contenedor, este habilitará el servicio postgres para utilizar la
 #### Servidor de Aplicaciones (Payara)
 Iniciar un nuevo contenedor
 ```
-docker run -p 4848:4848 -d --name=app -v /payara-apps:/opt/payara/deployments app
+docker run -p 4848:4848 -d --name=app app
 ```
 Las credenciales para acceder a la consola de administración son:
-- nombre de usuario: admin
-- contraseña: admin
+- Nombre de usuario: admin
+- Contraseña: admin
 
 En caso de ya tener creado el contenedor, se puede volver a iniciar mediante el comando:
 ```
 docker start app
 ```
-En cada despliegue, este servidor será regenerado por el servidor de integración contínua y desplegará las aplicaciones que se encuentren en el directorio `/payara-apps`
+Al iniciar el contenedor, se habilita el servicio ssh.
 
 #### Control de versiones
 Debe ejecutarse el siguiente comando
