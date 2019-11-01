@@ -1,11 +1,9 @@
-
-
 # Despliegue Automático de Aplicaciones
 ## Creación de Imágenes Docker
 Se deben crear las imágenes Docker para poner en marcha los contenedores necesarios, para ello, debemos posicionarnos en el directorio raíz del repositorio y ejecutar los siguientes pasos:
 ```
 cd infraestructura
-docker build -t postgres postgres/
+docker build -t db postgres/
 docker build -t payara payara/
 docker build -t git git/
 docker build -t jenkins jenkins/
@@ -14,11 +12,10 @@ docker build -t jenkins jenkins/
 ### Creación de contenedores
 #### Base de datos (PostgreSQL)
 Para iniciar un contenedor nuevo a partir de la imagen de postgres, se ejecuta
-`docker run -it --name=postgres postgres /bin/bash`
+`docker run --name db -d db`
 En caso de ya tener creado el contenedor, se puede volver a iniciar mediante el comando:
-`docker start -i postgres`
-Cada vez que se inicia el contenedor, debe ejecutarse el servicio de base de datos, mediante el siguiente comando:
-`service postgresql start`
+`docker start db`
+Al iniciar el contenedor, este habilitará el servicio postgres para utilizar la base de datos.
 
 #### Servidor de Aplicaciones
 Iniciar un nuevo contenedor
@@ -103,3 +100,4 @@ Con el objetivo de automatizar el despliegue de aplicaciones, debemos notificar 
 	* Dar click en el botón Add new token
 	* Copiar el valor generado y modificarlo en el archivo post-receive que se encuentra en la carpeta proyecto en la línea de la petición para realizar el despliegue en relación al parámetro usuario.
 * Copiar el archivo post-receive que se encuentra en la carpeta proyecto a la dirección de hooks del repositorio (/home/git/app/hooks) en el contenedor de git
+
