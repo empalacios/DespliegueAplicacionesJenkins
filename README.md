@@ -1,11 +1,11 @@
 # Despliegue Automático de Aplicaciones
 ## Creación de Imágenes Docker
-Se deben crear las imágenes Docker para poner en marcha los contenedores necesarios, para ello, debemos posicionarnos en el directorio raíz del repositorio y ejecutar los siguientes comandos:
+Se deben crear las imágenes Docker para crear los contenedores necesarios, esto podemos hacerlo posicionandonos en el directorio raíz del repositorio y ejecutar los siguientes comandos:
 ```
 docker build -t db infraestructura/postgres/
 docker build -t app infraestructura/payara/
 docker build -t git infraestructura/git/
-docker build -t jenkins infraestructura/jenkins/
+docker build -t jsf-apps-builder infraestructura/jsf-apps-builder/
 ```
 
 ## Puesta en marcha
@@ -40,52 +40,91 @@ En caso de ya tener creado el contenedor, se puede volver a iniciar mediante el 
 Cada vez que se inicia el contenedor debe ejecutarse el servicio ssh para enviar los cambios realizados, mediante el comando:
 `service ssh start`
 
-#### Servidor de Integración Continua (Jenkins)
-Debe ejecutarse el siguiente comando
+#### Servidor de Integración Continua
+##### Instalación Servidor Jenkins
+La instalación de un servidor Jenkins se realiza ejecutando los siguientes comandos  en un servidor linux basado en Debian 10 (Buster):
 ```
-docker run -it --name=jenkins jenkins /bin/bash
+sudo apt-get update
+sudo apt-get install -y wget gnupg openssh-client
+sudo apt-get install -y git
+sudo apt-get -y install openjdk-11-jre
+# descarga de jenkins
+wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
+sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list'
+sudo apt-get update
+sudo apt-get install -y jenkins
 ```
-Una vez creado el contenedor, debemos generar las claves ssh y enviarlas al servidor de aplicaciones y de control de versiones mediante los siguientes comandos:
+Una vez instalado el servidor, crearemos las claves ssh del mismo mediante los siguientes comandos:
 ```
 su - jenkins
-ssh-keygen # al momento de crear el archivo aceptar los valores por defecto pulsando <ENTER>
-ssh-copy-id jenkins@172.17.0.1 # docker host para contenedores payara, la constraseña se encuentra en el Dockerfile de payara
-ssh-copy-id jenkins@172.17.0.4 # git, la contraseña se encuentra en el Dockerfile de git
+ssh-keygen
 ```
+Al solicitar un nombre de archivo para guardar la clave y una frase para desencriptar la clave tecleamos <ENTER> para aceptar el nombre de archivo por defecto y una frase vacía.
 
-En caso de ya tener creado el contenedor, se puede volver a iniciar mediante el comando:
-`docker start -i jenkins`
+Luego procedemos a copiar nuestra clave a los servidores:
+- Servidor de control de versiones: para descargar los cambios al repositorio una vez que se inicie un proceso de despliegue (manual o automático)
+- Servidor de aplicaciones Payara para realizar el despliegue del ejecutable una vez se tenga listo.
 
-Cada vez que se inicie el contenedor debe iniciarse el servidor Jenkins mediante el comando:
-`service jenkins start`
+Esto lo haremos mediante los siguientes comandos
 
-##### Instalación de Jenkins
+```
+ssh-copy-id jenkins@172.17.0.3 # servidor de aplicaciones
+ssh-copy-id jenkins@172.17.0.4 # servidor de control de versiones
+```
+Las contraseñas del usuario se encuentran en los archivos Dockerfile a partir de los cuales se crean las imágenes para los contenedores de dichos servidores.
+
+Una vez instalado iniciamos el servicio de Jenkins:
+```
+sudo service jenkins start
+```
+Ahora procedemos a configurar el servidor Jenkins
+##### Configuración Jenkins
 La primera vez que ingresemos al servidor Jenkins, se deberá configurar el mismo, para lo cual
- - Cargar la página 172.17.0.5:8080 en un navegador web
- - Desbloquear el servidor Jenkins ingresando en el cuadro de texto, el contenido del archivo `/var/lib/jenkins/secrets/initialAdminPassword`
- - En la pantalla Customize Jenkins, seleccionar la opción Select plugins to install
- - En la siguiente pantalla seleccionar los siguientes plugins y dar click en Install
-	 - Folders
-	 - Build Timeout
-	 - Credentials Binding
-	 - Timestamper
-	 - Workspace Cleanup
-	 - Pipeline
-	 - Pipeline: Stage View
-	 - Git
- - En la siguiente pantalla crear un usuario para el servidor Jenkins y dar click en el botón Save and continue
-	 - Username: admin
-	 - Password: admin
-	 - Full name: El usuario
-	 - Email address: usuario@organizacion.com
- - En la siguiente pantalla configurar la URL de Jenkins que tendrá finalmente y dar click en Save and finish
-	 - URL Jenkins: http://172.17.0.5:8080/
+- Cargar la página localhost:8080 en un navegador web
+- Desbloquear el servidor Jenkins ingresando en el cuadro de texto, el contenido del archivo `/var/lib/jenkins/secrets/initialAdminPassword`
+- En la pantalla Customize Jenkins, seleccionar la opción Select plugins to install
+- En la siguiente pantalla seleccionar los siguientes plugins y dar click en Install
+  - Folders
+  - Build Timeout
+  - Credentials Binding
+  - Timestamper
+  - Workspace Cleanup
+  - Pipeline
+  - Pipeline: Stage View
+  - Git
+- En la siguiente pantalla crear un usuario para el servidor Jenkins y dar click en el botón Save and continue
+  - Username: admin
+  - Password: admin
+  - Full name: El usuario
+  - Email address: usuario@organizacion.com
+- En la siguiente pantalla configurar la URL de Jenkins que tendrá finalmente y dar click en Save and finish
+  - URL Jenkins: http://172.17.0.1:8080/
+
+### Peticiones Automatizadas de Despliegue
+Con el objetivo de automatizar el despliegue de aplicaciones, debemos configurar el servidor Jenkins para que acepte peticiones HTTP para desplegar los proyectos, para ello debemos realizar las siguientes configuraciones:
+* Generar un token para el API de Jenkins: Esto evita tener que enviar la contraseña del usuario a utilizar para la autenticación de las peticiones
+  * Ingresar al servidor Jenkins con el usuario y contraseña configurados
+  * Dar click en la opción Manage Jenkins del menú
+  * Elegir la opción Manage Users
+  * Dar click en la opción Create User
+  * Crear un usuario para realizar los despliegues, podemos hacerlo con los siguientes datos:
+    * Username: ProductosApp
+    * Password: ProductosApp-despliegues-password
+    * Full name: Despliegues ProductosApp
+    * E-mail address: despliegues-productosapp@organizacion.com
+  * Cerrar sesión de Jenkins
+  * Ingresar a Jenkins con los datos del usuario ProductosApp
+  * Dar click en el nombre de usuario en la esquina superior derecha
+  * Ir a la opción Configure del menú
+  * Dar click en el botón Add new token
+  * Dar click en el botón Generate
+  * Copiar el token ya que este servirá para configurar el repositorio del proyecto.
 
 ## Automatización del despliegue de ProductosApp
-Debemos seguir los siguientes pasos para crear nuestra definición de depliegue (pipeline):
+Debemos seguir los siguientes pasos para crear nuestra definición de depliegue (pipeline) para ProductosApp:
 - Ingresar al servidor Jenkins
 - Dar click a la opción New Item
-- Ingresr el nombre del proyecto (ProductosApp) y seleccionar la opción Pipeline
+- Ingresar el nombre del proyecto (ProductosApp) y seleccionar la opción Pipeline
 - Dar click en el botón OK.
 
 Ya en el proyecto se deben realizar las siguientes configuraciones:
@@ -95,14 +134,10 @@ Ya en el proyecto se deben realizar las siguientes configuraciones:
 	* Seleccionar la opción *Pipeline script from SCM* en el campo Definition.
 	* En la opción SCM seleccionar Git
 	* En Repositoriy URL ingresar ssh://jenkins@172.17.0.4/home/git/app
-	* En Script Path ingresar el nombre del archivo de definición del despliegue (por defecto es Jenkinsfile)
+	* En Script Path ingresar el nombre del archivo de definición del despliegue (Jenkinsfile)
 * Dar click en Save
-
-### Enlazar el Repositorio a Jenkins
-Con el objetivo de automatizar el despliegue de aplicaciones, debemos notificar al servidor Jenkins que ha habido un cambio en el repositorio para que inicie el despliegue del proyecto, para lo cual debemos realizar las siguientes configuraciones:
-* Generar un token para el API de Jenkins
-	* Dar click en el nombre de usuario que se encuentra en la esquina superior derecha
-	* Ir a la opción Configure del menú
-	* Dar click en el botón Add new token
-	* Copiar el valor generado y modificarlo en el archivo post-receive que se encuentra en la carpeta proyecto en la línea de la petición para realizar el despliegue en relación al parámetro usuario.
-* Copiar el archivo post-receive que se encuentra en la carpeta proyecto a la dirección de hooks del repositorio (/home/git/app/hooks) en el contenedor de git
+* Modificar el script post-receive de ProductosApp (proyecto/post-receive)
+  * tokenUsuario: el token generado para el usuario ProductosApp
+  * urlJenkins: la dirección del servicio Jenkins (incluyendo http o https)
+  * ProductosAppToken: token asignado al proyecto ProductosApp de Jenkins
+* Copiar el archivo post-receive a la dirección de hooks del repositorio de la aplicación (`/home/git/app/hooks`) en el contenedor de git

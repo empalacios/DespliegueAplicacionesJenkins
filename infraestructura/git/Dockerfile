@@ -27,5 +27,3 @@ RUN mkdir /home/git/app \
   && cd /home/git/app \
   && git init --bare . \
   && chown -R git:git /home/git/app
-
-COPY post-receive /home/git/app/hooks

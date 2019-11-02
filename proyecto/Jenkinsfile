@@ -2,13 +2,20 @@ pipeline {
   agent any
 
   stages {
-    stage('build') {
+    stage('construcción') {
+      agent {
+        docker {
+          image 'jsf-apps-builder'
+          reuseNode true
+        }
+      }
+
       steps {
-        sh '/opt/apache-maven-3.6.2/bin/mvn -f ProductosApp clean package'
+        sh 'mvn -f ProductosApp clean package'
       }
     }
 
-    stage('deploy') {
+    stage('despliegue') {
       steps {
         sh 'ssh jenkins@172.17.0.3 rm -f ProductosApp.war'
         sh 'scp ProductosApp/target/ProductosApp-1.0-SNAPSHOT.war jenkins@172.17.0.3:/home/jenkins/ProductosApp.war'

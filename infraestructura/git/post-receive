@@ -1,4 +1,0 @@
-#!/bin/sh
-
-crumb=$(wget -q --auth-no-challenge --user admin --password 1138987afc0d11744e0483de1dfe3cf341 --output-document - 'http://172.17.0.5:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)')
-curl -X POST --user admin:1138987afc0d11744e0483de1dfe3cf341 -H "$crumb" http://172.17.0.5:8080/job/ProductosApp/build?token=productos-token
