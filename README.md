@@ -2,9 +2,10 @@
 ## Creación de Imágenes Docker
 Se deben crear las imágenes Docker para crear los contenedores necesarios, esto podemos hacerlo posicionandonos en el directorio raíz del repositorio y ejecutar los siguientes comandos:
 ```
-docker build -t db infraestructura/postgres/
-docker build -t app infraestructura/payara/
-docker build -t git infraestructura/git/
+docker build -t db               infraestructura/postgres/
+docker build -t app              infraestructura/payara/
+docker build -t git              infraestructura/git/
+docker build -t jenkins          infraestructura/jenkins/
 docker build -t jsf-apps-builder infraestructura/jsf-apps-builder/
 ```
 
@@ -40,23 +41,14 @@ En caso de ya tener creado el contenedor, se puede volver a iniciar mediante el 
 Cada vez que se inicia el contenedor debe ejecutarse el servicio ssh para enviar los cambios realizados, mediante el comando:
 `service ssh start`
 
-#### Servidor de Integración Continua
+#### Servidor de Integración Continua (Jenkins)
 ##### Instalación Servidor Jenkins
 La instalación de un servidor Jenkins se realiza ejecutando los siguientes comandos  en un servidor linux basado en Debian 10 (Buster):
 ```
-sudo apt-get update
-sudo apt-get install -y wget gnupg openssh-client
-sudo apt-get install -y git
-sudo apt-get -y install openjdk-11-jre
-# descarga de jenkins
-wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
-sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list'
-sudo apt-get update
-sudo apt-get install -y jenkins
+docker run -u root -d --name jenkins -v /var/run/docker.sock:/var/run/docker.sock jenkins
 ```
 Una vez instalado el servidor, crearemos las claves ssh del mismo mediante los siguientes comandos:
 ```
-su - jenkins
 ssh-keygen
 ```
 Al solicitar un nombre de archivo para guardar la clave y una frase para desencriptar la clave tecleamos <ENTER> para aceptar el nombre de archivo por defecto y una frase vacía.
@@ -73,18 +65,14 @@ ssh-copy-id jenkins@172.17.0.4 # servidor de control de versiones
 ```
 Las contraseñas del usuario se encuentran en los archivos Dockerfile a partir de los cuales se crean las imágenes para los contenedores de dichos servidores.
 
-Una vez instalado iniciamos el servicio de Jenkins:
-```
-sudo service jenkins start
-```
-Ahora procedemos a configurar el servidor Jenkins
 ##### Configuración Jenkins
 La primera vez que ingresemos al servidor Jenkins, se deberá configurar el mismo, para lo cual
 - Cargar la página localhost:8080 en un navegador web
-- Desbloquear el servidor Jenkins ingresando en el cuadro de texto, el contenido del archivo `/var/lib/jenkins/secrets/initialAdminPassword`
+- Desbloquear el servidor Jenkins ingresando en el cuadro de texto, el contenido del archivo `/var/jenkins_home/secrets/initialAdminPassword`
 - En la pantalla Customize Jenkins, seleccionar la opción Select plugins to install
 - En la siguiente pantalla seleccionar los siguientes plugins y dar click en Install
   - Folders
+  - OWASP Markup Formatter
   - Build Timeout
   - Credentials Binding
   - Timestamper
@@ -98,7 +86,7 @@ La primera vez que ingresemos al servidor Jenkins, se deberá configurar el mism
   - Full name: El usuario
   - Email address: usuario@organizacion.com
 - En la siguiente pantalla configurar la URL de Jenkins que tendrá finalmente y dar click en Save and finish
-  - URL Jenkins: http://172.17.0.1:8080/
+  - URL Jenkins: http://172.17.0.5:8080/
 
 ### Peticiones Automatizadas de Despliegue
 Con el objetivo de automatizar el despliegue de aplicaciones, debemos configurar el servidor Jenkins para que acepte peticiones HTTP para desplegar los proyectos, para ello debemos realizar las siguientes configuraciones:

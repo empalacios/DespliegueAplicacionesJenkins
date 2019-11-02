@@ -1,3 +1,7 @@
 #!/bin/sh
-crumb=$(wget -q --auth-no-challenge --user ProductosApp --password tokenUsuario --output-document - 'urlJenkins/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)')
-curl -X POST --user ProductosApp:tokenUsuario -H "$crumb" urlJenkins/job/ProductosApp/build?token=ProductosAppToken
+user=
+userToken=
+urlJenkins=
+appToken=
+crumb=$(wget -q --auth-no-challenge --user $user --password $userToken --output-document - $urlJenkins'/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)')
+curl -X POST --user $user:$userToken -H "$crumb" $urlJenkins/job/ProductosApp/build?token=$appToken
