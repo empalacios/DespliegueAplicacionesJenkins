@@ -11,12 +11,15 @@ public class DBManager {
 
     private static DBManager manager = null;
     private final String driverClass = "org.postgresql.Driver";
-    private final String connectionString = "jdbc:postgresql://127.0.0.1:5432/app";
-    private final String user = "app";
-    private final String password = "app";
+    private final String connectionString;
+    private final String user;
+    private final String password;
 
     private DBManager() throws Exception {
         Class.forName(driverClass);
+        connectionString = System.getProperty("db_connection_string");
+        user = System.getProperty("db_username");
+        password = System.getProperty("db_user_password");
     }
 
     public static DBManager getInstance() throws Exception {
