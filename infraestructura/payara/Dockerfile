@@ -17,6 +17,6 @@ USER payara
 COPY start-ssh.sh $HOME_DIR/scripts/init.d
 # payara configuration
 RUN sh $PAYARA_DIR/glassfish/bin/asadmin start-domain \
-  && sh $PAYARA_DIR/glassfish/bin/asadmin --user=admin --passwordfile=$HOME_DIR/passwordFile create-system-properties db_connection_string=jdbc\\:postgresql\\://127.0.0.1\\:5432/app \
+  && sh $PAYARA_DIR/glassfish/bin/asadmin --user=admin --passwordfile=$HOME_DIR/passwordFile create-system-properties db_connection_string=jdbc\\:postgresql\\://172.17.0.2\\:5432/app \
   && sh $PAYARA_DIR/glassfish/bin/asadmin --user=admin --passwordfile=$HOME_DIR/passwordFile create-system-properties db_username=app \
   && sh $PAYARA_DIR/glassfish/bin/asadmin --user=admin --passwordfile=$HOME_DIR/passwordFile create-system-properties db_user_password=app-production-pass
