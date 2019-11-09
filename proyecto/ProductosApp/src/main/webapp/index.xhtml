@@ -4,23 +4,78 @@
       xmlns:h="http://java.sun.com/jsf/html"
       xmlns:f="http://java.sun.com/jsf/core"
       xmlns:p="http://primefaces.org/ui">
-    <head>
+    <h:head>
         <title>Tienda</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    </head>
-    <body>
-        <p:dataTable var="producto" value="#{index.productos}">
-            <p:column headerText="Id">
-                <h:outputText value="#{producto.id}" />
-            </p:column>
+    </h:head>
 
-            <p:column headerText="Nombre">
-                <h:outputText value="#{producto.nombre}" />
-            </p:column>
+    <h:body>
+        <h:form>
+            <p:menubar>
+                <p:submenu label="Clientes" icon="pi pi-pencil">
+                    <p:menuitem value="Ver clientes" icon="pi pi-briefcase" />
+                    <p:separator />
+                    <p:menuitem value="Salir    " url="#" />
+                </p:submenu>
 
-            <p:column headerText="Descripción">
-                <h:outputText value="#{producto.descripcion}" />
-            </p:column>
-        </p:dataTable>
-    </body>
+                <p:submenu label="Productos" icon="pi pi-file">
+                    <p:menuitem value="Nuevo" icon="pi pi-briefcase" />
+                    <p:menuitem value="Editar" icon="pi pi-pencil" />
+                </p:submenu>
+
+                <f:facet name="options">
+                    <p:inputText style="margin:1px 10px 1px 1px;" placeholder="Buscar"/>
+                    <p:commandButton type="button" value="Salir" icon="pi pi-home" />
+                </f:facet>
+            </p:menubar>
+        </h:form>
+
+        <h:form id="form">
+            <p:dataGrid value="#{index.productos}"
+                        var="producto"
+                        layout="grid"
+                        columns="3"
+                        rows="12"
+                        paginator="false">
+                <f:facet name="header">
+                    Productos a la venta
+                </f:facet>
+
+                <p:panel header="#{producto.id}" style="text-align:center">
+                    <h:panelGrid columns="1" style="width:100%">
+                        <h:outputText value="#{producto.nombre}" />
+
+                        <p:commandLink update=":form:detalleProducto" oncomplete="PF('dialogoProducto').show()" title="Ver información">
+                            <h:outputText styleClass="pi pi-search" style="margin:0 auto;" />
+                            <f:setPropertyActionListener value="#{producto}" target="#{index.productoSeleccionado}" />
+                        </p:commandLink>
+                    </h:panelGrid>
+                </p:panel>
+
+            </p:dataGrid>
+
+            <p:dialog header="Información"
+                      widgetVar="dialogoProducto"
+                      modal="true"
+                      showEffect="fade"
+                      hideEffect="fade"
+                      resizable="false">
+                <p:outputPanel id="detalleProducto"
+                               style="text-align:center;">
+                    <p:panelGrid rendered="#{not empty index.productoSeleccionado}"
+                                 columnClasses="label,value"
+                                 columns="2">
+                        <h:outputText value="Código:" />
+                        <h:outputText value="#{index.productoSeleccionado.id}" />
+
+                        <h:outputText value="Producto:" />
+                        <h:outputText value="#{index.productoSeleccionado.nombre}" />
+
+                        <h:outputText value="Descripción:" />
+                        <h:outputText value="#{index.productoSeleccionado.descripcion}"/>
+                    </p:panelGrid>
+                </p:outputPanel>
+            </p:dialog>
+        </h:form>
+    </h:body>
 </html>

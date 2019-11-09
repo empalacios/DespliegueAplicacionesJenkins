@@ -17,6 +17,7 @@ public class Index implements Serializable {
 
     private ProductosManager productosManager;
     private List<Producto> productos;
+    private Producto productoSeleccionado;
 
     public Index() throws Exception {
         productosManager = ProductosManager.getInstance();
@@ -29,6 +30,14 @@ public class Index implements Serializable {
 
     public void setProductos(List<Producto> productos) {
         this.productos = productos;
+    }
+
+    public Producto getProductoSeleccionado() {
+        return productoSeleccionado;
+    }
+
+    public void setProductoSeleccionado(Producto productoSeleccionado) {
+        this.productoSeleccionado = productoSeleccionado;
     }
 
 }
