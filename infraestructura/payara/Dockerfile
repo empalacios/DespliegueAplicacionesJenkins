@@ -5,6 +5,8 @@ RUN apt-get update
 RUN apt-get install -y sudo openssh-server
 
 # usuario jenkins
+#   nombre de usuario: jenkins
+#   contraseña: holamundo-jenkins
 RUN useradd -d/home/jenkins jenkins \
   && mkdir /home/jenkins \
   && chown jenkins:jenkins /home/jenkins \

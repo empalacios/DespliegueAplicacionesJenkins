@@ -11,12 +11,16 @@ RUN apt-get install -y openssh-server
 RUN apt-get install -y git
 
 # git user
+#   username: git
+#   password: git
 RUN useradd -d/home/git git \
   && mkdir /home/git \
   && chown git:git /home/git \
   && echo git:git | chpasswd
 
 # jenkins user
+#   username: jenkins
+#   password: jenkins-git
 RUN useradd jenkins \
   && mkdir /home/jenkins \
   && chown jenkins:jenkins /home/jenkins \
