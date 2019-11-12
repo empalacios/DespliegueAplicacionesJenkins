@@ -1,4 +1,4 @@
-# Despliegue Automático de Aplicaciones
+# Despliegue Automatizado de Aplicaciones
 En el siguiente documento se describen los pasos necesarios para realizar una
 prueba de despliegue automatizado para una aplicación Java web con JavaServer
 Faces (JSF.)
@@ -10,13 +10,15 @@ Es necesario tener instalado Docker para ejecutar la infraestructura necesaria
 ### Docker
 Permite la creación de ambientes para ejecución de aplicaciones (es un tipo de
 virtualización). Lo más importante para este proyecto es que permite construir
-contenedores (algo así como máquinas virtuales livianas) a partir de plantillas
-(imágenes.)
+contenedores (máquinas virtuales livianas) a partir de plantillas (imágenes)
+preconstruidas.
 
 > Documentación sobre conceptos de Docker se pueden conseguir en las siguientes
-URLs: `https://docs.docker.com/get-started/` y `https://docs.docker.com/engine/docker-overview/`
+URLs: `https://docs.docker.com/get-started/` y
+`https://docs.docker.com/engine/docker-overview/`
 
-> Un manual para instalación de Docker en sistemas basados en Debian/Linux se encuentra en la siguiente URL:
+> Un manual para instalación de Docker en sistemas basados en Debian/Linux se
+encuentra en la siguiente URL:
 `https://docs.docker.com/install/linux/docker-ce/debian/`
 
 ## Infraestructura
@@ -34,7 +36,8 @@ direcciones ip descritas en la siguiente tabla:
 Para crear las imágenes de los contenedores que utilizaremos como base para los
 servidores que necesitamos, primero debemos abrir una terminal y cambiarnos al
 directorio raíz del proyecto (ej
-`cd /home/usuario/Desktop/despliegue_aplicaciones`) y luego ejecutar los siguientes comandos:
+`cd /home/usuario/Desktop/despliegue_aplicaciones`) y luego ejecutar los siguientes
+comandos:
 ```
 docker build -t       db         infraestructura/postgres/
 docker build -t       app        infraestructura/payara/
@@ -49,7 +52,7 @@ en el orden siguiente:
 > Hay que tomar en cuenta que las direcciones en el documento se encuentran en
 relación a la tabla descrita en la sección Infraestructura, por lo tanto, si no
 obtenemos las mismas direcciones debemos tener cuidado de escribir las direcciones
-correctas en los pasos/scripts/archivos de configuración.
+correctas en los pasos/scripts siguientes.
 
 #### Servidor de Base de datos
 Si no hemos creado el servidor de base de datos, podemos hacerlo con el siguiente
@@ -96,7 +99,7 @@ docker run -it --name=git git /bin/bash
 > Lo importante con este contenedor, es que estará activo siempre que no cerremos
 la terminal que nos provee, por lo tanto, hay que evitar ingresar el comando `exit`
 ya que apagará el servidor. Si por accidente lo apagamos podemos iniciarlo según
-la siguiente explicación
+el siguiente párrafo.
 
 En caso de ya tener creado el contenedor, se puede iniciar mediante el comando:
 ```
@@ -117,24 +120,20 @@ la imagen `jenkins`:
 docker run -u root -d --name jenkins -v /var/run/docker.sock:/var/run/docker.sock jenkins
 ```
 > Como se puede apreciar se monta un volumen hacia el archivo /var/run/docker.sock
-desde el contenedor de integración contínua, esto es necesario ya que debido a
-que este contenedor creará un contenedor adicional para compilar la aplicación,
-se configuró de modo que utilice la instancia de Docker de la máquina anfitrión
-y no tener que instalar Docker en ese contenedor también (además es la recomendación
-de la documentación de Jenkins.)
+desde el contenedor de integración contínua, de esta manera este contenedor
+utilizará el motor Docker de la máquina anfitrión donde se está ejecutando, en
+lugar de crear contenedores Docker dentro de el mismo.
 
 Una vez creado el contenedor, generamos las claves ssh del mismo utilizando el
 siguiente comando:
 ```
 ssh-keygen
 ```
-> Al solicitar un nombre de archivo para guardar la clave y una frase para desencriptar
-la clave tecleamos \<ENTER\> para aceptar el nombre de archivo por defecto y una
-frase vacía.
-
-> Esto con la finalidad de registrar la identidad del servidor de integración
-contínua en los servidores de aplicaciones y de control de versiones para ejecutar
-comandos de forma remota via ssh sin necesidad de interacción para realizarlo.
+> Al solicitar un nombre de archivo para guardar la clave y una frase para
+desencriptar, tecleamos <ENTER\> para aceptar el nombre de archivo por defecto
+y una frase vacía. Esto con la finalidad de registrar la identidad del servidor
+de integración contínua en los servidores necesarios para ejecutar comandos de
+forma remota via ssh sin necesidad de interacción humana.
 
 Luego procedemos a copiar la identidad del servidor (clave ssh) a los servidores:
 - Servidor de control de versiones: para obtener los cambios hechos al repositorio
