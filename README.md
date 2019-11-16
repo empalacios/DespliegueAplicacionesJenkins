@@ -124,8 +124,12 @@ desde el contenedor de integración contínua, de esta manera este contenedor
 utilizará el motor Docker de la máquina anfitrión donde se está ejecutando, en
 lugar de crear contenedores Docker dentro de el mismo.
 
-Una vez creado el contenedor, generamos las claves ssh del mismo utilizando el
-siguiente comando:
+Una vez creado el contenedor, accedemos a una terminal mediante el siguiente
+comando:
+```
+docker exec -it jenkins /bin/bash
+```
+y generamos las claves ssh del mismo utilizando el siguiente comando:
 ```
 ssh-keygen
 ```
@@ -192,47 +196,78 @@ docker start jenkins
 se deben realizar una sola vez.
 
 ## Proceso de Despliegue Automatizado de ProductosApp
-### Configuración para Peticiones HTTP de Despliegue
-Con el objetivo de automatizar el despliegue de aplicaciones, debemos configurar
-el servidor Jenkins para que acepte peticiones HTTP para desplegar los proyectos,
-para ello debemos realizar las siguientes configuraciones:
-* Generar un token para el API de Jenkins: Esto evita tener que enviar la contraseña
-del usuario a utilizar para la autenticación de las peticiones
-  * Ingresar al servidor Jenkins con el usuario y contraseña configurados
-  * Dar click en la opción *Manage Jenkins* del menú
-  * Elegir la opción *Manage Users*
-  * Dar click en la opción *Create User*
-  * Crear un usuario para realizar los despliegues, podemos hacerlo con los siguientes datos:
-    * Username: ProductosApp
-    * Password: productosapp
-    * Full name: Despliegues ProductosApp
-    * E-mail address: despliegues-productosapp@example.com
-  * Cerrar sesión de Jenkins
-  * Ingresar a Jenkins con los datos del usuario ProductosApp
-  * Dar click en el nombre de usuario en la esquina superior derecha
-  * Ir a la opción *Configure* del menú
-  * Dar click en el botón *Add new token*
-  * Dar click en el botón *Generate*
-  * Copiar el token ya que este servirá para configurar el repositorio del proyecto.
+### Configuración de Usuario ProductosApp de Jenkins
+Con el objetivo de automatizar el despliegue de aplicaciones, debemos notificar
+al servidor Jenkins cuando se realice un cambio al repositorio oficial (repositorio
+localizado en el contenedor Git).
 
-## Automatización del despliegue de ProductosApp
+Para ello necesitamos autenticar las peticiones realizadas al servidor Jenkins,
+por lo que tenemos que generar un usuario y token en el servidor Jenkins y utilizar
+estas credenciales en cada petición de despliegue.
+
+A continuación se describen los pasos para generar el usuario para desplegar la
+aplicación ProductosApp:
+* Ingresar al servidor Jenkins con el usuario y contraseña configurados
+* Dar click en la opción *Manage Jenkins* del menú
+* Elegir la opción *Manage Users*
+* Dar click en la opción *Create User*
+* Crear un usuario para realizar los despliegues, podemos hacerlo con los siguientes datos:
+  * Username: ProductosApp
+  * Password: productosapp
+  * Full name: Despliegues ProductosApp
+  * E-mail address: despliegues-productosapp@example.com
+* Cerrar sesión de Jenkins
+* Ingresar a Jenkins con los datos del usuario ProductosApp
+* Dar click en el nombre de usuario en la esquina superior derecha
+* Ir a la opción *Configure* del menú
+* Dar click en el botón *Add new token*
+* Dar click en el botón *Generate*
+* A este token le llamaremos *token de usuario* y debemos copiar el valor, ya
+  que cuando configuremos el repositorio Git del proyecto servirá para autenticar
+  las notificaciones al servidor Jenkins.
+
+### Configuración de proyecto ProductosApp en Jenkins
 Debemos seguir los siguientes pasos para crear nuestra definición de depliegue (pipeline) para ProductosApp:
 - Ingresar al servidor Jenkins
 - Dar click a la opción *New Item*
 - Ingresar el nombre del proyecto (ProductosApp) y seleccionar la opción *Pipeline*
 - Dar click en el botón *OK*.
 
+> La opción Pipeline nos permite definir el despliegue mediante un script, el cual
+podremos versionar junto con el proyecto.
+
 Ya en el proyecto se deben realizar las siguientes configuraciones:
 * Sección *Build Triggers*
-  * Seleccionar la opción *Trigger builds remotely* con un token para autenticación (productos-token)
+  * Seleccionar la opción *Trigger builds remotely*, a través de esta opción
+    el servidor Jenkins podrá ser notificado cuando sea necesario iniciar un
+    proceso de despliegue. Aquí debemos ingresar un token (Authentication Token)
+    al cual nosotros le llamaremos *token de aplicación* y debemos configurar este
+    valor en el repositorio de Git ya que es otra de las credenciales necesarias
+    en la notificación al servidor Jenkins.
 * Sección *Pipeline*
   * Seleccionar la opción *Pipeline script from SCM* en el campo Definition.
   * En la opción SCM seleccionar *Git*
-  * En Repositoriy URL ingresar ssh://jenkins@*IP-Git*/home/git/app
-  * En Script Path ingresar el nombre del archivo de definición del despliegue (*Jenkinsfile*)
+  * En Repositoriy URL ingresar ssh://jenkins@172.17.0.4/home/git/app, que es la
+    ubicación de nuestro repositorio, como podemos ver es necesario ingresar la
+    dirección IP del servidor Git y el usuario configurado para que se obtenga
+    el repositorio en el tipo de despliegue
+  * En Script Path dejar el valor por defecto *Jenkinsfile*
 * Dar click en *Save*
 * Modificar el script `post-receive` de ProductosApp (`proyecto/post-receive`)
   * `tokenUsuario`: el token generado para el usuario ProductosApp
-  * `urlJenkins`: la dirección del servicio Jenkins (incluyendo http o https)
-  * `ProductosAppToken`: token asignado al proyecto ProductosApp de Jenkins
-* Copiar el archivo `post-receive` a la dirección de *hooks* del repositorio de la aplicación (`/home/git/app/hooks`) en el contenedor de git.
+  * `urlJenkins`: la dirección del servicio Jenkins, en nuestro caso
+    http://172.17.0.5:8080
+  * `ProductosAppToken`: ingresar el token de aplicación configurado en la sección
+    Trigger Builds remotely del proyecto ProductosApp en Jenkins
+  * Copiar el archivo `post-receive` a la dirección de *hooks* del repositorio de la aplicación (`/home/git/app/hooks`) en el contenedor de git.
+
+A partir de este momento ocurrirá lo siguiente:
+* Al recibir un push el proyecto del servidor Git, ejecutará el script `post-receive`,
+  este script enviará una petición de despliegue al servidor Jenkins
+* El servidor Jenkins obtendrá los cambios del repositorio y ejecutará los pasos
+  descritos en el archivo Jenkinsfile del proyecto
+  * En la etapa *construcción*, se compilará el proyecto con el comando mvn dentro
+    de un contenedor generado a partir de la imagen `jsf-apps-builder`
+  * En la etapa *despliegue* se copian el ejecutable `ProductosApp-1.0-SNAPSHOT.war`
+    al servidor de aplicaciones (Payara) y se ejecuta el comando de despliegue
+    de la aplicación, de esa forma, se actualiza la versión desplegada en el servidor.
